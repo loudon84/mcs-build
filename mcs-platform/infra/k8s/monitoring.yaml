@@ -1,0 +1,14 @@
+# Prometheus ServiceMonitor
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mcs-orchestrator
+  namespace: mcs-platform
+spec:
+  selector:
+    matchLabels:
+      app: mcs-orchestrator
+  endpoints:
+  - port: http
+    path: /metrics
+

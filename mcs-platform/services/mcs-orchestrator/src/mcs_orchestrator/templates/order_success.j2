@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>订单创建成功</title>
+</head>
+<body>
+    <h2>订单创建成功</h2>
+    <p>您好，</p>
+    <p>订单已成功创建：</p>
+    <ul>
+        <li><strong>订单号：</strong>{{ sales_order_no }}</li>
+        <li><strong>订单链接：</strong><a href="{{ order_url }}">{{ order_url }}</a></li>
+        <li><strong>客户：</strong>{{ customer_name }}</li>
+    </ul>
+    <p>感谢您的使用！</p>
+</body>
+</html>
+

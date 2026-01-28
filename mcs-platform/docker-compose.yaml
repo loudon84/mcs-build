@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mcs
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: mcs_platform
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  masterdata:
+    build:
+      context: .
+      dockerfile: services/mcs-masterdata/docker/Dockerfile
+    environment:
+      DB_DSN: postgresql://mcs:password@postgres:5432/mcs_masterdata
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8002:8002"
+    depends_on:
+      - postgres
+      - redis
+
+  orchestrator:
+    build:
+      context: .
+      dockerfile: services/mcs-orchestrator/docker/Dockerfile
+    environment:
+      DB_DSN: postgresql://mcs:password@postgres:5432/mcs_orchestrator
+      MASTERDATA_API_URL: http://masterdata:8002
+      DIFY_BASE_URL: ${DIFY_BASE_URL}
+      DIFY_CONTRACT_APP_KEY: ${DIFY_CONTRACT_APP_KEY}
+      DIFY_ORDER_APP_KEY: ${DIFY_ORDER_APP_KEY}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - masterdata
+
+  email-listener:
+    build:
+      context: .
+      dockerfile: services/mcs-email-listener/docker/Dockerfile
+    environment:
+      DB_DSN: postgresql://mcs:password@postgres:5432/mcs_email_listener
+      ORCHESTRATOR_API_URL: http://orchestrator:8000
+      IMAP_HOST: ${IMAP_HOST}
+      IMAP_USER: ${IMAP_USER}
+      IMAP_PASS: ${IMAP_PASS}
+    ports:
+      - "8001:8001"
+    depends_on:
+      - postgres
+      - orchestrator
+
+volumes:
+  postgres_data:
+

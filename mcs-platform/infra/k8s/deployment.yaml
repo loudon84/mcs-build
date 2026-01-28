@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcs-orchestrator
+  namespace: mcs-platform
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcs-orchestrator
+  template:
+    metadata:
+      labels:
+        app: mcs-orchestrator
+    spec:
+      containers:
+      - name: orchestrator
+        image: mcs-orchestrator:latest
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - configMapRef:
+            name: mcs-platform-config
+        env:
+        - name: DIFY_BASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: mcs-secrets
+              key: dify-base-url
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcs-orchestrator
+  namespace: mcs-platform
+spec:
+  selector:
+    app: mcs-orchestrator
+  ports:
+  - port: 8000
+    targetPort: 8000
+

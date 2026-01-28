@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>需要人工审核</title>
+</head>
+<body>
+    <h2>需要人工审核</h2>
+    <p>您好，</p>
+    <p>以下订单需要您的人工审核：</p>
+    <ul>
+        <li><strong>邮件ID：</strong>{{ message_id }}</li>
+        <li><strong>原因：</strong>{{ reason }}</li>
+        {% if warnings %}
+        <li><strong>警告：</strong>
+            <ul>
+                {% for warning in warnings %}
+                <li>{{ warning }}</li>
+                {% endfor %}
+            </ul>
+        </li>
+        {% endif %}
+    </ul>
+    <p>请登录系统进行审核处理。</p>
+</body>
+</html>
+

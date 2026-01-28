@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>订单创建失败</title>
+</head>
+<body>
+    <h2>订单创建失败</h2>
+    <p>您好，</p>
+    <p>很抱歉，订单创建过程中出现错误：</p>
+    <ul>
+        {% for error in errors %}
+        <li><strong>{{ error.code }}：</strong>{{ error.reason }}</li>
+        {% endfor %}
+    </ul>
+    <p>请检查相关信息后重试，或联系技术支持。</p>
+</body>
+</html>
+

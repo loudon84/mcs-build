@@ -1,0 +1,2 @@
+"""Sales email graph module."""
+

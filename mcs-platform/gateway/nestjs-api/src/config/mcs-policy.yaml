@@ -1,0 +1,28 @@
+default:
+  graphs:
+    - name: sales-email
+      versions: ["v1"]
+      default_version: "v1"
+      required_scopes: ["mcs:sales_email:run"]
+      limits:
+        rpm: 100
+        burst: 10
+
+tenants:
+  tenant1:
+    graphs:
+      - name: sales-email
+        versions: ["v1", "v2"]
+        default_version: "v2"
+        required_scopes: ["mcs:sales_email:run"]
+        limits:
+          rpm: 200
+          burst: 20
+
+routing:
+  orchestrator_base_url: "http://mcs-orchestrator:8000"
+  timeout_ms: 30000
+  retry:
+    enabled: true
+    max_retries: 2
+
