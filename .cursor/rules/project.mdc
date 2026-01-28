@@ -1,0 +1,48 @@
+---
+alwaysApply: true
+---
+
+# MCS Platform Project Configuration
+
+## Environment Setup
+
+### Conda Environment
+- **Environment Name**: `mcs-platform`
+- **Python Version**: `3.12`
+- **Activation**: Always use conda environment `mcs-platform` for this project
+
+### Python Version Requirements
+- Minimum Python version: 3.12
+- All services and libraries must be compatible with Python 3.12
+- Use type hints compatible with Python 3.12 features
+
+### Environment Management
+- Always activate conda environment before running commands:
+  ```bash
+  conda activate mcs-platform
+  ```
+
+### Project Structure
+- **Monorepo**: `mcs-platform/`
+- **Services**: 
+  - `services/mcs-orchestrator/`
+  - `services/mcs-masterdata/`
+  - `services/mcs-email-listener/`
+- **Libraries**: 
+  - `libs/contracts/`
+
+### Development Tools
+- Use `pyproject.toml` for dependency management (PEP 621)
+- Use `ruff` for linting and formatting
+- Use `pytest` for testing
+- Use `alembic` for database migrations
+
+### Environment Variables
+- Store environment-specific config in `.env` files
+- Use `pydantic-settings` for configuration management
+- Never commit sensitive credentials to version control
+
+### Code Generation Rules
+- All generated code must be compatible with Python 3.12
+- Use modern Python features (type hints, dataclasses, async/await)
+- Follow PEP 8 style guide with `ruff` enforcement

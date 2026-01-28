@@ -1,0 +1,306 @@
+---
+alwaysApply: true
+---
+
+# MCS Platform Coding Rules (Cursor) — Naming & Conventions
+# Scope: LangGraph orchestration runtime + LangServe API + LangSmith tracing + DB audit/ idempotency.
+# Goal: enforce consistent naming across Python services, shared contracts, and integration boundaries.
+
+version: 1.0
+project: mcs-platform
+applies_to:
+  - services/mcs-orchestrator/**
+  - services/mcs-toolkit/**
+  - libs/contracts/**
+language: python
+
+# ------------------------------------------------------------
+# 1) General Naming Rules
+# ------------------------------------------------------------
+naming:
+  casing:
+    files: snake_case
+    directories: snake_case
+    python_modules: snake_case
+    functions: snake_case
+    methods: snake_case
+    variables: snake_case
+    constants: UPPER_SNAKE_CASE
+    classes: PascalCase
+    enums: PascalCase
+    enum_members: UPPER_SNAKE_CASE
+    type_aliases: PascalCase
+  forbidden:
+    - camelCase_in_python
+    - hungarian_notation
+    - single_letter_names_except:
+        - i
+        - j
+        - k
+        - x
+        - y
+        - z
+        - _
+  abbreviations:
+    allowed:
+      - id
+      - uid
+      - url
+      - api
+      - db
+      - erp
+      - pdf
+      - smtp
+      - dify
+      - rpa
+      - json
+      - sha256
+      - vl
+      - rag
+      - mcs
+    rules:
+      - use_lowercase_abbrev_in_identifiers: true
+      - do_not_invent_new_abbrev_without_reason: true
+
+# ------------------------------------------------------------
+# 2) Directory & File Naming
+# ------------------------------------------------------------
+layout:
+  packages:
+    - "mcs_contracts"     # shared models
+    - "mcs_orchestrator"  # orchestration service
+  file_patterns:
+    nodes: "services/mcs-orchestrator/src/mcs_orchestrator/graphs/*/nodes/*.py"
+    graph: "services/mcs-orchestrator/src/mcs_orchestrator/graphs/*/graph.py"
+    state: "services/mcs-orchestrator/src/mcs_orchestrator/graphs/*/state.py"
+    tools: "services/mcs-orchestrator/src/mcs_orchestrator/tools/*.py"
+  file_name_rules:
+    - "One concept per file"
+    - "Node file name MUST equal node function stem (e.g., match_contact.py -> node_match_contact)"
+    - "Avoid generic filenames: utils.py, common.py (unless in contracts/common.py)"
+
+# ------------------------------------------------------------
+# 3) Public API Endpoint Naming (LangServe/FastAPI)
+# ------------------------------------------------------------
+api:
+  url_style: "kebab-case"
+  versioning:
+    prefix: "/v1"
+  endpoints:
+    - run: "/v1/orchestrations/sales-email/run"
+    - replay: "/v1/orchestrations/sales-email/replay"
+    - health: "/v1/healthz"
+  handler_function_names:
+    - run: "run_sales_email"
+    - replay: "replay_sales_email"
+    - health: "healthz"
+  request_response_models:
+    rule: "Use libs/contracts Pydantic models; do not redefine schema locally unless extending."
+  headers:
+    request_id: "X-Request-ID"
+
+# ------------------------------------------------------------
+# 4) Contracts (libs/contracts) Naming Rules
+# ------------------------------------------------------------
+contracts:
+  models:
+    - EmailEvent
+    - EmailAttachment
+    - MasterData
+    - Customer
+    - Contact
+    - Company
+    - Product
+  results:
+    suffix: "Result"
+    examples:
+      - ContactMatchResult
+      - ContractSignalResult
+      - CustomerMatchResult
+      - FileUploadResult
+      - DifyContractResult
+      - DifyOrderPayloadResult
+      - ERPCreateOrderResult
+      - OrchestratorRunResult
+  fields:
+    style: snake_case
+    stable_keys:
+      - message_id
+      - from_email
+      - customer_id
+      - customer_num
+      - contact_id
+      - file_url
+      - idempotency_key
+      - sales_order_no
+      - order_url
+      - sha256
+    forbidden_field_styles:
+      - camelCase
+      - PascalCase
+  ok_flag:
+    rule: "All Result models MUST include ok: bool as the first declared field."
+
+# ------------------------------------------------------------
+# 5) LangGraph Node Naming Rules
+# ------------------------------------------------------------
+langgraph:
+  graph_names:
+    format: "{domain}_{purpose}"
+    examples:
+      - sales_email
+  node_names:
+    python_identifier: snake_case
+    prefix_rule:
+      - "All node callables MUST be named node_<action>_<object>"
+    examples:
+      - node_load_masterdata
+      - node_match_contact
+      - node_detect_contract_signal
+      - node_match_customer
+      - node_upload_pdf
+      - node_call_dify_contract
+      - node_call_dify_order_payload
+      - node_call_erp_gateway
+      - node_notify_sales
+      - node_persist_audit
+      - node_finalize
+  state:
+    type_name: "SalesEmailState"
+    rule:
+      - "State type MUST be defined in state.py"
+      - "State fields must align with contracts stable_keys"
+  transitions:
+    status_enum: "StatusEnum"
+    statuses:
+      - IGNORED
+      - UNKNOWN_CONTACT
+      - MANUAL_REVIEW
+      - CONTRACT_PARSE_FAILED
+      - ORDER_PAYLOAD_BLOCKED
+      - ERP_ORDER_FAILED
+      - SUCCESS
+
+# ------------------------------------------------------------
+# 6) Tool Naming Rules
+# ------------------------------------------------------------
+tools:
+  clients:
+    class_suffix: "Client"
+    examples:
+      - DifyClient
+      - FileServerClient
+      - ErpGatewayClient
+  methods:
+    - "Use verb_noun() e.g., upload_file(), send_email(), match_customer_by_filename()"
+  returned_values:
+    rule: "Tools MUST return a contracts Result model OR raise OrchestratorError; no raw dicts."
+
+# ------------------------------------------------------------
+# 7) Database Naming Rules (PostgreSQL)
+# ------------------------------------------------------------
+database:
+  table_names: snake_case_plural
+  tables:
+    - orchestration_runs
+    - idempotency_records
+    - audit_events
+  column_names: snake_case
+  primary_keys:
+    - orchestration_runs.run_id
+    - idempotency_records.idempotency_key
+    - audit_events.id
+  indexes:
+    rule: "Index names: ix_<table>_<col1>[_<col2>]"
+
+# ------------------------------------------------------------
+# 8) Error Code Naming Rules
+# ------------------------------------------------------------
+errors:
+  code_style: UPPER_SNAKE_CASE
+  rule:
+    - "All business/flow errors MUST map to an error_code string"
+    - "Prefer explicit codes over free-text"
+  examples:
+    - MASTERDATA_INVALID
+    - CONTACT_NOT_FOUND
+    - NOT_CONTRACT_MAIL
+    - PDF_NOT_FOUND
+    - CUSTOMER_MATCH_LOW_SCORE
+    - CUSTOMER_CONTACT_MISMATCH
+    - FILE_UPLOAD_FAILED
+    - DIFY_CONTRACT_FAILED
+    - DIFY_ORDER_PAYLOAD_BLOCKED
+    - ERP_CREATE_FAILED
+
+# ------------------------------------------------------------
+# 9) Logging, Tracing, Redaction Naming
+# ------------------------------------------------------------
+observability:
+  logger_name: "mcs"
+  redact:
+    module: "observability/redaction.py"
+    function: "redact_dict"
+  trace:
+    module: "observability/langsmith.py"
+    context_manager: "trace_span"
+  keys_to_mask:
+    - email
+    - telephone
+    - unit_price
+    - amount
+    - address
+    - token
+    - api_key
+    - password
+
+# ------------------------------------------------------------
+# 10) Style & Documentation Rules
+# ------------------------------------------------------------
+style:
+  docstrings:
+    rule: "Public functions/classes MUST have docstring; nodes MUST include I/O summary."
+    format: "Google style"
+  type_hints:
+    required: true
+  return_types:
+    required: true
+  exceptions:
+    rule: "Raise OrchestratorError for flow-breaking conditions; keep raw exceptions wrapped."
+  tests:
+    naming:
+      files: "test_*.py"
+      functions: "test_<behavior>_<expected>"
+  formatting:
+    ruff: true
+    black: true
+
+# ------------------------------------------------------------
+# 11) Integration Boundary Rules (Dify / ERP / Gateway)
+# ------------------------------------------------------------
+integration:
+  dify:
+    naming:
+      contract_flow: "dify_contract_agent"
+      order_flow: "dify_order_payload_agent"
+    inputs_field: "inputs"
+    user_field: "user"
+    files_field: "files"
+  erp:
+    service_name: "erp_order_service"
+    payload_field: "order_payload"
+  gateway:
+    rule:
+      - "No permission slicing in Python orchestrator; assume gateway provides tenant_id/user_id/scopes"
+      - "Python logs/audit MUST record tenant_id/user_id if provided"
+
+# ------------------------------------------------------------
+# 12) Enforcements (What Cursor MUST NOT generate)
+# ------------------------------------------------------------
+forbidden_patterns:
+  - "def main(): pass  # placeholder without TODO"
+  - "print(...) in production code (use logger)"
+  - "magic numbers without constants (e.g., threshold=75 inline)"
+  - "global mutable state except Settings singleton"
+  - "silent exception swallowing (except controlled retries)"
+  - "return {} raw dicts from tools/nodes (must return Result models or raise OrchestratorError)"
