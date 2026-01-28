@@ -16,6 +16,9 @@ RUN cd libs/contracts && pip install -e .
 # Copy alembic config
 COPY alembic.ini ./
 
+# Set PYTHONPATH to include src directory
+ENV PYTHONPATH=/app/src:$PYTHONPATH
+
 # Run service (migrations will be run in startup script or manually)
-CMD ["uvicorn", "mcs_listener.api.main:app", "--host", "0.0.0.0", "--port", "8001"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8001"]
 

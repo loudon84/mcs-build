@@ -3,7 +3,7 @@
 import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from mcs_listener.listeners.alimail_listener import AlimailListener
+from listeners.alimail_listener import AlimailListener
 
 
 @pytest.mark.asyncio

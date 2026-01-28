@@ -14,5 +14,6 @@ COPY ../../libs/contracts/ ./libs/contracts/
 RUN cd libs/contracts && pip install -e .
 
 # Run service
-CMD ["python", "-m", "mcs_orchestrator.api.main"]
+ENV PYTHONPATH=/app/src:$PYTHONPATH
+CMD ["python", "-m", "api.main"]
 

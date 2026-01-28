@@ -1,9 +1,9 @@
-"""Test retry mechanism."""
+﻿"""Test retry mechanism."""
 
 import pytest
 from unittest.mock import AsyncMock, patch
 
-from mcs_orchestrator.observability.retry import retry_with_backoff
+from observability.retry import retry_with_backoff
 
 
 @retry_with_backoff(max_retries=3, backoff_factor=0.1)

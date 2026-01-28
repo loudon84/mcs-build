@@ -1,10 +1,10 @@
-"""Test idempotency."""
+﻿"""Test idempotency."""
 
 import pytest
 
 from mcs_contracts import StatusEnum
-from mcs_orchestrator.db.models import IdempotencyRecord
-from mcs_orchestrator.db.repo import OrchestratorRepo
+from db.models import IdempotencyRecord
+from db.repo import OrchestratorRepo
 
 
 def test_idempotency_hit():

@@ -11,6 +11,9 @@ if [ -z "$DB_DSN" ]; then
     exit 1
 fi
 
+# 设置 PYTHONPATH 以包含 src 目录
+export PYTHONPATH="${PYTHONPATH}:/app/src"
+
 # 等待数据库就绪（可选，如果数据库在同一网络中）
 # 可以添加数据库连接检查逻辑
 
@@ -20,4 +23,4 @@ alembic upgrade head
 
 # 启动服务
 echo "Starting service..."
-exec uvicorn mcs_listener.api.main:app --host 0.0.0.0 --port 8001
+exec uvicorn api.main:app --host 0.0.0.0 --port 8001

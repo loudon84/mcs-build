@@ -6,8 +6,7 @@ from typing import Any
 
 import httpx
 
-from mcs_contracts import EmailAttachment, EmailEvent
-from mcs_contracts.common import now_iso
+from mcs_contracts import EmailAttachment, EmailEvent, now_iso
 from mcs_email_listener.settings import Settings
 
 

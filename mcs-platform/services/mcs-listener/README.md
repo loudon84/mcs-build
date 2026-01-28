@@ -106,7 +106,7 @@ GET /healthz
 在 `listeners/` 目录下创建新的监听器类，继承 `BaseListener`：
 
 ```python
-from mcs_listener.listeners.base import BaseListener
+from listeners.base import BaseListener
 
 class NewChannelListener(BaseListener):
     @property
@@ -125,7 +125,7 @@ class NewChannelListener(BaseListener):
 在 `processors/` 目录下创建处理器，继承 `BaseProcessor`：
 
 ```python
-from mcs_listener.processors.base import BaseProcessor
+from processors.base import BaseProcessor
 from mcs_contracts import EmailEvent
 
 class NewChannelProcessor(BaseProcessor):
@@ -181,7 +181,7 @@ chmod +x scripts/start.sh
 
 **方式二：直接运行**
 ```bash
-uvicorn mcs_listener.api.main:app --host 0.0.0.0 --port 8001
+uvicorn api.main:app --host 0.0.0.0 --port 8001
 ```
 
 **方式三：Docker 部署**

@@ -1,9 +1,9 @@
-"""Test failure paths for sales email graph."""
+﻿"""Test failure paths for sales email graph."""
 
 import pytest
 
 from mcs_contracts import EmailEvent, StatusEnum
-from mcs_orchestrator.graphs.sales_email.state import SalesEmailState
+from graphs.sales_email.state import SalesEmailState
 
 
 def test_unknown_contact():
@@ -24,7 +24,7 @@ def test_unknown_contact():
     state = SalesEmailState(email_event=email_event)
     # Simulate contact not found
     from mcs_contracts import ContactMatchResult, ErrorInfo
-    from mcs_orchestrator.errors import CONTACT_NOT_FOUND
+    from errors import CONTACT_NOT_FOUND
 
     state.matched_contact = ContactMatchResult(
         ok=False,
@@ -53,7 +53,7 @@ def test_not_contract_mail():
     state = SalesEmailState(email_event=email_event)
     # Simulate not contract mail
     from mcs_contracts import ContractSignalResult, ErrorInfo
-    from mcs_orchestrator.errors import NOT_CONTRACT_MAIL
+    from errors import NOT_CONTRACT_MAIL
 
     state.contract_signals = ContractSignalResult(
         ok=False,

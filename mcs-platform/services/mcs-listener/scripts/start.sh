@@ -11,10 +11,13 @@ if [ -z "$DB_DSN" ]; then
     exit 1
 fi
 
+# 设置 PYTHONPATH 以包含 src 目录
+export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+
 # 运行数据库迁移
 echo "Running database migrations..."
 alembic upgrade head
 
 # 启动服务
 echo "Starting service..."
-exec uvicorn mcs_listener.api.main:app --host 0.0.0.0 --port 8001
+exec uvicorn api.main:app --host 0.0.0.0 --port 8001

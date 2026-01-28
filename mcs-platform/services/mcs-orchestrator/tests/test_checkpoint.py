@@ -1,9 +1,9 @@
-"""Test checkpoint store."""
+﻿"""Test checkpoint store."""
 
 import pytest
 
-from mcs_orchestrator.db.checkpoint.postgres_checkpoint import PostgresCheckpointStore
-from mcs_orchestrator.settings import Settings
+from db.checkpoint.postgres_checkpoint import PostgresCheckpointStore
+from settings import Settings
 
 
 @pytest.mark.asyncio

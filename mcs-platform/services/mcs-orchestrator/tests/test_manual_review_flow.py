@@ -1,4 +1,4 @@
-"""Test manual review flow."""
+﻿"""Test manual review flow."""
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -11,17 +11,17 @@ from mcs_contracts import (
     ErrorInfo,
     StatusEnum,
 )
-from mcs_orchestrator.db.models import OrchestrationRun
-from mcs_orchestrator.db.repo import OrchestratorRepo
-from mcs_orchestrator.errors import (
+from db.models import OrchestrationRun
+from db.repo import OrchestratorRepo
+from errors import (
     MULTI_CUSTOMER_AMBIGUOUS,
     MULTI_PDF_ATTACHMENTS,
     PERMISSION_DENIED,
     RUN_NOT_IN_MANUAL_REVIEW,
 )
-from mcs_orchestrator.graphs.sales_email.nodes.generate_candidates import generate_manual_review_candidates
-from mcs_orchestrator.graphs.sales_email.resume import determine_resume_node, resume_from_node
-from mcs_orchestrator.graphs.sales_email.state import SalesEmailState
+from graphs.sales_email.nodes.generate_candidates import generate_manual_review_candidates
+from graphs.sales_email.resume import determine_resume_node, resume_from_node
+from graphs.sales_email.state import SalesEmailState
 
 
 @pytest.mark.asyncio
@@ -183,7 +183,7 @@ async def test_resume_idempotency_hit():
     state.masterdata = masterdata
 
     repo = MagicMock(spec=OrchestratorRepo)
-    from mcs_orchestrator.db.models import IdempotencyRecord
+    from db.models import IdempotencyRecord
     from datetime import datetime
 
     record = IdempotencyRecord(

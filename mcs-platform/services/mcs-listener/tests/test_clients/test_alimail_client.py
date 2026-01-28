@@ -4,8 +4,8 @@ import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, patch, MagicMock
 
-from mcs_listener.clients.alimail_client import AlimailClient, OAuthManager
-from mcs_listener.clients.exceptions import AlimailAuthError, AlimailAPIError
+from clients.alimail_client import AlimailClient, OAuthManager
+from clients.exceptions import AlimailAuthError, AlimailAPIError
 
 
 @pytest.mark.asyncio

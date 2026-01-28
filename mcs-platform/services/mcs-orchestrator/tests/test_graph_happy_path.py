@@ -1,19 +1,19 @@
-"""Test happy path for sales email graph."""
+﻿"""Test happy path for sales email graph."""
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from mcs_contracts import EmailEvent, EmailAttachment, StatusEnum
-from mcs_orchestrator.graphs.sales_email.state import SalesEmailState
+from graphs.sales_email.state import SalesEmailState
 
 
 @pytest.mark.asyncio
 async def test_happy_path():
     """Test successful orchestration flow."""
     # Mock dependencies
-    with patch("mcs_orchestrator.tools.dify_client.DifyClient") as mock_dify, \
-         patch("mcs_orchestrator.tools.file_server.FileServerClient") as mock_file_server, \
-         patch("mcs_orchestrator.tools.masterdata_client.MasterDataClient") as mock_masterdata:
+    with patch("tools.dify_client.DifyClient") as mock_dify, \
+         patch("tools.file_server.FileServerClient") as mock_file_server, \
+         patch("tools.masterdata_client.MasterDataClient") as mock_masterdata:
 
         # Setup mocks
         mock_dify_instance = AsyncMock()

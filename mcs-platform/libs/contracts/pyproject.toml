@@ -7,7 +7,6 @@ name = "mcs-contracts"
 version = "0.1.0"
 description = "MCS Platform - Shared data contracts (Pydantic models)"
 requires-python = ">=3.12"
-readme = "README.md"
 dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
@@ -37,4 +36,9 @@ indent-style = "space"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
+
+[tool.hatch.build.targets.wheel]
+# Install src/ directory as mcs_contracts package
+# mcs_contracts.py re-exports everything from src/__init__.py
+packages = ["src"]
 
