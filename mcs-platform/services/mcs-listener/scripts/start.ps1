@@ -20,10 +20,26 @@ Write-Host "Working directory: $ProjectRoot" -ForegroundColor Gray
 $EnvFile = Join-Path $ProjectRoot ".env"
 if (Test-Path $EnvFile) {
     Write-Host "Loading environment variables from .env file: $EnvFile" -ForegroundColor Yellow
-    Get-Content $EnvFile | ForEach-Object {
-        if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+    # 使用 UTF-8 编码读取 .env 文件，避免中文注释导致的编码问题
+    $content = Get-Content $EnvFile -Encoding UTF8
+    $content | ForEach-Object {
+        # 跳过注释和空行
+        $line = $_.Trim()
+        if ([string]::IsNullOrWhiteSpace($line) -or $line.StartsWith('#')) {
+            return
+        }
+        # 解析 KEY=VALUE 格式
+        if ($line -match '^\s*([^#][^=]+)=(.*)$') {
             $name = $matches[1].Trim()
             $value = $matches[2].Trim()
+            # 移除值中可能的引号
+            if ($value.StartsWith('"') -and $value.EndsWith('"')) {
+                $value = $value.Substring(1, $value.Length - 2)
+            }
+            if ($value.StartsWith("'") -and $value.EndsWith("'")) {
+                $value = $value.Substring(1, $value.Length - 2)
+            }
+            # 确保环境变量值使用 UTF-8 编码
             [Environment]::SetEnvironmentVariable($name, $value, "Process")
         }
     }
@@ -47,6 +63,9 @@ if ($currentPath) {
 } else {
     $env:PYTHONPATH = $SrcPath
 }
+
+# 设置 Python 编码为 UTF-8，避免编码问题
+$env:PYTHONIOENCODING = "utf-8"
 
 # 运行数据库迁移
 Write-Host "Running database migrations..." -ForegroundColor Yellow
