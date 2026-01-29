@@ -8,33 +8,44 @@
 
 $ErrorActionPreference = "Stop"
 
+# 切换到脚本所在目录的父目录（项目根目录）
+$ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$ProjectRoot = Split-Path -Parent $ScriptDir
+Set-Location $ProjectRoot
+
 Write-Host "Starting MCS Listener Service..." -ForegroundColor Green
+Write-Host "Working directory: $ProjectRoot" -ForegroundColor Gray
 
 # 加载 .env 文件（如果存在）
-if (Test-Path .env) {
-    Write-Host "Loading environment variables from .env file..." -ForegroundColor Yellow
-    Get-Content .env | ForEach-Object {
+$EnvFile = Join-Path $ProjectRoot ".env"
+if (Test-Path $EnvFile) {
+    Write-Host "Loading environment variables from .env file: $EnvFile" -ForegroundColor Yellow
+    Get-Content $EnvFile | ForEach-Object {
         if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
             $name = $matches[1].Trim()
             $value = $matches[2].Trim()
             [Environment]::SetEnvironmentVariable($name, $value, "Process")
         }
     }
+} else {
+    Write-Host "Warning: .env file not found at $EnvFile" -ForegroundColor Yellow
 }
 
 # 检查环境变量
 if (-not $env:DB_DSN) {
     Write-Host "Error: DB_DSN environment variable is not set" -ForegroundColor Red
     Write-Host "Please set DB_DSN in .env file or as an environment variable" -ForegroundColor Yellow
+    Write-Host "Expected .env file location: $EnvFile" -ForegroundColor Yellow
     exit 1
 }
 
 # 设置 PYTHONPATH 以包含 src 目录
+$SrcPath = Join-Path $ProjectRoot "src"
 $currentPath = $env:PYTHONPATH
 if ($currentPath) {
-    $env:PYTHONPATH = "$currentPath;$PWD\src"
+    $env:PYTHONPATH = "$currentPath;$SrcPath"
 } else {
-    $env:PYTHONPATH = "$PWD\src"
+    $env:PYTHONPATH = $SrcPath
 }
 
 # 运行数据库迁移

@@ -9,11 +9,18 @@
 
 set -e
 
+# 切换到脚本所在目录的父目录（项目根目录）
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+cd "$PROJECT_ROOT"
+
 echo "Starting MCS Listener Service..."
+echo "Working directory: $PROJECT_ROOT"
 
 # 加载 .env 文件（如果存在）
-if [ -f .env ]; then
-    echo "Loading environment variables from .env file..."
+ENV_FILE="$PROJECT_ROOT/.env"
+if [ -f "$ENV_FILE" ]; then
+    echo "Loading environment variables from .env file: $ENV_FILE"
     set -a  # 自动导出所有变量
     # 使用更健壮的方法加载 .env，处理 Windows 行尾符和特殊字符
     while IFS= read -r line || [ -n "$line" ]; do
@@ -27,19 +34,22 @@ if [ -f .env ]; then
         if [[ "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*= ]]; then
             export "$line"
         fi
-    done < .env
+    done < "$ENV_FILE"
     set +a  # 关闭自动导出
+else
+    echo "Warning: .env file not found at $ENV_FILE"
 fi
 
 # 检查环境变量
 if [ -z "$DB_DSN" ]; then
     echo "Error: DB_DSN environment variable is not set"
     echo "Please set DB_DSN in .env file or as an environment variable"
+    echo "Expected .env file location: $ENV_FILE"
     exit 1
 fi
 
 # 设置 PYTHONPATH 以包含 src 目录
-export PYTHONPATH="${PYTHONPATH}:$(pwd)/src"
+export PYTHONPATH="${PYTHONPATH}:$PROJECT_ROOT/src"
 
 # 运行数据库迁移
 echo "Running database migrations..."
