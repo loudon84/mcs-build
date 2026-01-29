@@ -5,9 +5,18 @@ set -e
 
 echo "MCS Listener Service - Starting..."
 
+# 加载 .env 文件（如果存在，Docker 中通常不需要）
+if [ -f .env ]; then
+    echo "Loading environment variables from .env file..."
+    set -a
+    source .env
+    set +a
+fi
+
 # 检查数据库连接
 if [ -z "$DB_DSN" ]; then
     echo "Error: DB_DSN environment variable is not set"
+    echo "Please set DB_DSN in .env file or as an environment variable"
     exit 1
 fi
 
