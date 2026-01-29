@@ -152,6 +152,40 @@ class NewChannelProcessor(BaseProcessor):
 
 ## 快速开始
 
+### 0. 安装依赖（独立部署）
+
+**使用 conda 环境安装（推荐）**
+
+**Windows (PowerShell):**
+```powershell
+# 确保已创建并激活 conda 环境
+conda activate mcs-platform
+
+# 运行安装脚本
+.\scripts\install.ps1
+```
+
+**Linux/macOS (Bash):**
+```bash
+# 确保已创建并激活 conda 环境
+conda activate mcs-platform
+
+# 运行安装脚本
+chmod +x scripts/install.sh
+./scripts/install.sh
+```
+
+**手动安装:**
+```bash
+# 1. 安装 mcs-contracts
+cd ../../libs/contracts
+pip install -e .
+
+# 2. 安装 mcs-listener
+cd ../../services/mcs-listener
+pip install -e .
+```
+
 ### 1. 配置环境变量
 
 复制 `.env.example` 为 `.env` 并填写配置：

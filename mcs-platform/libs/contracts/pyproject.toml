@@ -38,7 +38,9 @@ python_files = "test_*.py"
 python_functions = "test_*"
 
 [tool.hatch.build.targets.wheel]
-# Install src/ directory as mcs_contracts package
-# mcs_contracts.py re-exports everything from src/__init__.py
+# Install src/mcs_contracts.py as mcs_contracts module
+# Also include src/__init__.py and other modules for direct imports
 packages = ["src"]
+# Force include mcs_contracts.py as top-level module
+force-include = { "src/mcs_contracts.py" = "mcs_contracts.py" }
 

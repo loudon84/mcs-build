@@ -19,7 +19,7 @@ dependencies = [
     "pydantic>=2.0.0",
     "pydantic-settings>=2.0.0",
     "alembic>=1.13.0",
-    "mcs-contracts @ file://../../libs/contracts",
+    "mcs-contracts",
 ]
 
 [project.optional-dependencies]
@@ -45,3 +45,11 @@ indent-style = "space"
 testpaths = ["tests"]
 python_files = "test_*.py"
 python_functions = "test_*"
+
+[tool.hatch.metadata]
+# Allow direct references (file://) for local package dependencies
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+# Package structure: code is directly in src/ directory (flattened structure)
+packages = ["src"]
