@@ -9,7 +9,7 @@ alwaysApply: true
 version: 1.0
 project: mcs-platform
 applies_to:
-  - services/mcs-orchestrator/**
+  - orchestrator/**
   - services/mcs-toolkit/**
   - libs/contracts/**
 language: python
@@ -70,10 +70,10 @@ layout:
     - "mcs_contracts"     # shared models
     - "mcs_orchestrator"  # orchestration service
   file_patterns:
-    nodes: "services/mcs-orchestrator/src/mcs_orchestrator/graphs/*/nodes/*.py"
-    graph: "services/mcs-orchestrator/src/mcs_orchestrator/graphs/*/graph.py"
-    state: "services/mcs-orchestrator/src/mcs_orchestrator/graphs/*/state.py"
-    tools: "services/mcs-orchestrator/src/mcs_orchestrator/tools/*.py"
+    nodes: "orchestrator/src/graphs/*/nodes/*.py"
+    graph: "orchestrator/src/graphs/*/graph.py"
+    state: "orchestrator/src/graphs/*/state.py"
+    tools: "orchestrator/src/tools/*.py"
   file_name_rules:
     - "One concept per file"
     - "Node file name MUST equal node function stem (e.g., match_contact.py -> node_match_contact)"

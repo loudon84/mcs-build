@@ -17,50 +17,39 @@ services:
     ports:
       - "6379:6379"
 
-  masterdata:
-    build:
-      context: .
-      dockerfile: services/mcs-masterdata/docker/Dockerfile
-    environment:
-      DB_DSN: postgresql://mcs:password@postgres:5432/mcs_masterdata
-      REDIS_URL: redis://redis:6379/0
-    ports:
-      - "8002:8002"
-    depends_on:
-      - postgres
-      - redis
-
   orchestrator:
     build:
       context: .
-      dockerfile: services/mcs-orchestrator/docker/Dockerfile
+      dockerfile: orchestrator/docker/Dockerfile
     environment:
-      DB_DSN: postgresql://mcs:password@postgres:5432/mcs_orchestrator
-      MASTERDATA_API_URL: http://masterdata:8002
+      # 分库配置
+      ORCHESTRATION_DB_DSN: postgresql://mcs:password@postgres:5432/mcs_orchestrator
+      MASTERDATA_DB_DSN: postgresql://mcs:password@postgres:5432/mcs_masterdata
+      LISTENER_DB_DSN: postgresql://mcs:password@postgres:5432/mcs_listener
+      # Dify 配置
       DIFY_BASE_URL: ${DIFY_BASE_URL}
       DIFY_CONTRACT_APP_KEY: ${DIFY_CONTRACT_APP_KEY}
       DIFY_ORDER_APP_KEY: ${DIFY_ORDER_APP_KEY}
-    ports:
-      - "8000:8000"
-    depends_on:
-      - postgres
-      - masterdata
-
-  email-listener:
-    build:
-      context: .
-      dockerfile: services/mcs-email-listener/docker/Dockerfile
-    environment:
-      DB_DSN: postgresql://mcs:password@postgres:5432/mcs_email_listener
-      ORCHESTRATOR_API_URL: http://orchestrator:8000
+      # ERP Gateway 配置
+      ERP_BASE_URL: ${ERP_BASE_URL:-http://erp:9000}
+      ERP_API_KEY: ${ERP_API_KEY}
+      ERP_TENANT_ID: ${ERP_TENANT_ID}
+      # Listener 配置
+      ENABLED_LISTENERS: ${ENABLED_LISTENERS:-email}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-imap}
       IMAP_HOST: ${IMAP_HOST}
       IMAP_USER: ${IMAP_USER}
       IMAP_PASS: ${IMAP_PASS}
+      ALIMAIL_CLIENT_ID: ${ALIMAIL_CLIENT_ID}
+      ALIMAIL_CLIENT_SECRET: ${ALIMAIL_CLIENT_SECRET}
+      ALIMAIL_EMAIL_ACCOUNT: ${ALIMAIL_EMAIL_ACCOUNT}
+      # Cache 配置
+      REDIS_URL: redis://redis:6379/0
     ports:
-      - "8001:8001"
+      - "18000:18000"
     depends_on:
       - postgres
-      - orchestrator
+      - redis
 
 volumes:
   postgres_data:

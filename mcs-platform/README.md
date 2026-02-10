@@ -8,15 +8,18 @@ MCS Platform 是一个基于 LangGraph + LangServe 的 业务应用 -> 智能体
 mcs-platform/
 ├── libs/
 │   └── contracts/          # 共享数据契约（Pydantic 模型）
-├── services/
-│   ├── mcs-masterdata/     # 主数据管理服务
-│   ├── mcs-listener/       # 多通道监听服务（邮件/企业微信等）
-│   ├── mcs-gateway/        # 外部系统集成网关（ERP等）
-│   └── mcs-orchestrator/   # 编排服务（LangGraph + LangServe）
+├── orchestrator/          # 统一编排服务（单节点部署）
+│                           # 合并了 gateway、masterdata、listener 功能
+│   ├── modules/           # 模块层（gateway, masterdata, listener）
+│   ├── services/           # 服务层（跨模块通信）
+│   ├── api/routes/         # API 路由层（按域拆分）
+│   ├── db/                # 编排数据库层
+│   ├── graphs/             # LangGraph 图定义
+│   ├── tools/              # 工具层
+│   └── observability/      # 可观测性
 ├── gateway/
 │   └── nestjs-api/         # NestJS 网关
 └── infra/
-    ├── docker/             # Docker 配置
     └── k8s/                # Kubernetes 配置
 ```
 
@@ -41,17 +44,8 @@ conda activate mcs-platform
 cd libs/contracts
 pip install -e .
 
-# 安装服务（按顺序）
-cd ../../services/mcs-masterdata
-pip install -e .
-
-cd ../mcs-listener
-pip install -e .
-
-cd ../mcs-gateway
-pip install -e .
-
-cd ../mcs-orchestrator
+# 安装统一编排服务
+cd ../../orchestrator
 pip install -e .
 ```
 

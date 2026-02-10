@@ -1,0 +1,24 @@
+---
+alwaysApply: true
+---
+
+# LangGraph: Checkpoint Store, Graph Edges & State Reducers
+
+## Checkpoint Store
+
+- **Compile with checkpointer**: When building a StateGraph, MUST call `graph.compile(checkpointer=checkpoint_saver)` so runs are persisted and resumable (e.g. manual review resume).
+- **thread_id = run_id**: Invoke with `{"configurable": {"thread_id": run_id}}`; use a unique `run_id` (e.g. UUID) per run so each run has its own checkpoint.
+- **Initialization**: If using a custom checkpoint store (e.g. `RedisCheckpointStore`), MUST call `await checkpoint_store.initialize()` before `get_checkpoint_saver_sync()` / compile. Do not pass an uninitialized store to `compile(checkpointer=...)`.
+
+## Graph Edges (Avoid InvalidUpdateError)
+
+- **No duplicate static + conditional from same node**: For any node that has `add_conditional_edges(node_name, routing_fn, {...})`, do NOT also call `add_edge(node_name, target)` to the same or overlapping targets. LangGraph will execute both the static edge and the conditional edge, causing multiple nodes to run in the same step and concurrent updates to the same state keys → `InvalidUpdateError`.
+- **Rule**: From a node that branches, use ONLY conditional edges for outgoing routing. Add static `add_edge()` only between nodes that have no conditional edges from the same source (e.g. `add_edge("load_masterdata", "match_contact")` is correct; `add_edge("check_idempotency", "load_masterdata")` must NOT exist if `add_conditional_edges("check_idempotency", ...)` already routes to `load_masterdata` or `finalize`).
+- **Entry point**: Use `graph.set_entry_point("first_node")` and let the first node's conditional edges define the next step(s).
+
+## State Schema (Reducers)
+
+- **Single-value keys**: Any state key that can receive both (1) initial input and (2) a node return in the same merge step MUST be annotated with a "keep first" reducer to avoid `InvalidUpdateError: Can receive only one value per step`. Use `Annotated[Type, _keep_first]` where `_keep_first(left, right) -> left if left is not None else right`.
+- **Apply to**: `email_event`, `masterdata`, `matched_contact`, `contract_signals`, `matched_customer`, `pdf_attachment`, `file_upload`, `contract_result`, `order_payload_result`, `erp_result`, `idempotency_key`, `final_status`, `started_at`, `finished_at`, `manual_review`, and any other optional/single-value key that nodes write.
+- **List keys (errors, warnings)**: Use `Annotated[list[ErrorInfo], operator.add]` and `Annotated[list[str], operator.add]` so multiple updates in the same step are concatenated instead of triggering "only one value per step".
+- **Rationale**: Nodes return the full state; LangGraph merges initial state and node output per step. Without reducers, keys updated by both input and node are seen as two values and raise InvalidUpdateError.

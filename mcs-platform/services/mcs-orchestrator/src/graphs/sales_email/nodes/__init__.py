@@ -1,2 +1,0 @@
-"""Sales email graph nodes."""
-

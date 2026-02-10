@@ -1,0 +1,1 @@
+"""Masterdata cache module."""

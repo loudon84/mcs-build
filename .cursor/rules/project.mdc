@@ -25,9 +25,7 @@ alwaysApply: true
 ### Project Structure
 - **Monorepo**: `mcs-platform/`
 - **Services**: 
-  - `services/mcs-orchestrator/`
-  - `services/mcs-masterdata/`
-  - `services/mcs-email-listener/`
+  - `orchestrator/` (????????? gateway?masterdata?listener ??)
 - **Libraries**: 
   - `libs/contracts/`
 
@@ -46,3 +44,84 @@ alwaysApply: true
 - All generated code must be compatible with Python 3.12
 - Use modern Python features (type hints, dataclasses, async/await)
 - Follow PEP 8 style guide with `ruff` enforcement
+
+### Windows Event Loop & Database Connection Pool Rules
+
+#### CRITICAL: Windows Event Loop Policy (psycopg Requirement)
+**MANDATORY**: On Windows, psycopg3 requires `SelectorEventLoop`, NOT `ProactorEventLoop`.
+
+**Required Setup**:
+1. **Application Entry Point** (`src/main.py`):
+   - MUST call `asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())` BEFORE importing any async code
+   - MUST be called before `uvicorn.run()` or any FastAPI app initialization
+   - Example:
+     ```python
+     def setup_event_loop():
+         import asyncio
+         import sys
+         if sys.platform == "win32":
+             asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+     
+     def main():
+         setup_event_loop()  # MUST be first
+         import uvicorn
+         from api.main import app
+         uvicorn.run(app, ...)
+     ```
+
+2. **FastAPI App Module** (`src/api/main.py`):
+   - SHOULD also set event loop policy at module level as a safety measure
+   - Example:
+     ```python
+     if sys.platform == "win32":
+         import asyncio
+         asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+     ```
+
+**FORBIDDEN**:
+- ? Using `ProactorEventLoop` with psycopg on Windows
+- ? Creating event loop manually without setting policy first
+- ? Assuming default event loop works with psycopg on Windows
+
+#### Database Connection Pool Initialization (PostgreSQL Checkpoint Store)
+**MANDATORY**: Use lazy initialization strategy to avoid connection pool timeout.
+
+**Required Configuration**:
+1. **Connection Pool Parameters** (`AsyncConnectionPool`):
+   - `min_size=0` - DO NOT pre-create connections (avoids initialization timeout)
+   - `max_size=20` - Maximum connections in pool
+   - `open=False` - Manual control, do not auto-open
+   - `kwargs` MUST include:
+     - `autocommit=True`
+     - `prepare_threshold=0` - Disable prepared statement caching
+     - `row_factory=dict_row` - Required for AsyncPostgresSaver
+
+2. **Initialization Pattern**:
+   ```python
+   self.pool = AsyncConnectionPool(
+       conninfo=self.conn_string,
+       min_size=0,  # CRITICAL: Do not pre-create connections
+       max_size=20,
+       kwargs={
+           "autocommit": True,
+           "prepare_threshold": 0,
+           "row_factory": dict_row,
+       },
+       open=False,  # Manual control
+   )
+   
+   # Open pool without waiting for connections
+   await self.pool.open()
+   # DO NOT call pool.wait() - connections created on-demand
+   ```
+
+**FORBIDDEN**:
+- ? `min_size > 0` - Causes initialization timeout
+- ? `await pool.wait(timeout=...)` - Blocks initialization
+- ? `open=True` - Auto-opens and may block
+- ? Missing `prepare_threshold=0` - Causes prepared statement errors
+
+**Rationale**:
+- Connection pool initialization timeout occurs when trying to pre-create connections
+- Lazy initialization (min_size=0) creates connections on-demand, avoiding timeout
+- Windows event loop policy must be set before any async database operations
