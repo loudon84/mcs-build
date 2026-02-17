@@ -2,11 +2,12 @@
 
 from datetime import datetime
 from typing import Optional
+from uuid import UUID
 
 from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
-from listener.db.models import MessageRecord
+from listener.db.models import AttachmentFile, MessageRecord
 from listener.utils import normalize_message_id
 
 
@@ -75,3 +76,39 @@ class ListenerRepo:
             record.processed = True
             record.processed_at = datetime.utcnow()
             self.session.commit()
+
+    def get_attachment_file(self, file_id: UUID) -> Optional[AttachmentFile]:
+        """Get attachment file record by id.
+
+        Args:
+            file_id: UUID of the attachment file record.
+
+        Returns:
+            AttachmentFile object, or None if not found.
+        """
+        return self.session.get(AttachmentFile, file_id)
+
+    def create_attachment_file(
+        self,
+        file_id: UUID,
+        message_id: str,
+        file_path: str,
+    ) -> AttachmentFile:
+        """Create a new attachment file record.
+        
+        Args:
+            file_id: UUID for the attachment file record.
+            message_id: Email message ID.
+            file_path: Relative file path (format: {message_id}/{filename}).
+            
+        Returns:
+            AttachmentFile object.
+        """
+        record = AttachmentFile(
+            id=file_id,
+            message_id=message_id,
+            file_path=file_path,
+        )
+        self.session.add(record)
+        self.session.commit()
+        return record

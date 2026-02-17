@@ -5,7 +5,7 @@ import email.utils
 import imaplib
 from typing import Any, Optional
 
-from listener.listeners.base import BaseListener
+from listener.channel.base import BaseListener
 
 
 class EmailListener(BaseListener):
@@ -21,6 +21,7 @@ class EmailListener(BaseListener):
         exchange_tenant_id: str = "",
         exchange_client_id: str = "",
         exchange_client_secret: str = "",
+        allow_from: Optional[list[str]] = None,
     ):
         """Initialize email listener."""
         self.provider = provider
@@ -32,11 +33,19 @@ class EmailListener(BaseListener):
         self.exchange_client_id = exchange_client_id
         self.exchange_client_secret = exchange_client_secret
         self.connection: Optional[imaplib.IMAP4_SSL] = None
+        self.allow_from = allow_from or []
 
     @property
     def channel_type(self) -> str:
         """Return channel type."""
         return "email"
+
+    def is_allowed(self, sender_id: str) -> bool:
+        """Check if sender is allowed."""
+        # If no allow list, allow all (backward compatible)
+        if not self.allow_from:
+            return True
+        return sender_id in self.allow_from
 
     async def connect(self) -> None:
         """Connect to email server.

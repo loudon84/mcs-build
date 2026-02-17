@@ -37,3 +37,19 @@ class BaseListener(ABC):
     def channel_type(self) -> str:
         """Return channel type identifier (e.g., 'email', 'wechat')."""
         pass
+
+    def is_allowed(self, sender_id: str) -> bool:
+        """
+        Check if sender is allowed to use this channel.
+        
+        Default implementation allows all senders (backward compatible).
+        Subclasses can override to implement access control based on allow_from whitelist.
+        
+        Args:
+            sender_id: Sender identifier (email address or wechat user id)
+        
+        Returns:
+            True if allowed, False otherwise
+        """
+        # Default: allow all (backward compatible)
+        return True

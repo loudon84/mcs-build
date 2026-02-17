@@ -13,7 +13,9 @@ async def node_call_gateway(
     gateway_service: GatewayService,
     repo,
 ) -> SalesEmailState:
-    """Call gateway to create order."""
+    """Call gateway to create order. 当前不启用：直接透传 state."""
+    return state  # 节点不启用，不调用网关
+
     if not state.order_payload_result or not state.order_payload_result.ok:
         return state
 

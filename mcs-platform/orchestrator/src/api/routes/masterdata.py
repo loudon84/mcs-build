@@ -1,5 +1,6 @@
 """Masterdata API routes."""
 
+import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -72,6 +73,8 @@ async def create_customer(
     masterdata_service: Annotated[MasterDataService, Depends(get_masterdata_service)],
 ):
     """Create or update a customer."""
+    if not (customer.customer_id or customer.customer_id.strip()):
+        customer = customer.model_copy(update={"customer_id": str(uuid.uuid4())})
     try:
         return masterdata_service.create_customer(customer)
     except ValueError as e:
@@ -87,6 +90,8 @@ async def create_contact(
     masterdata_service: Annotated[MasterDataService, Depends(get_masterdata_service)],
 ):
     """Create or update a contact."""
+    if not (contact.contact_id or contact.contact_id.strip()):
+        contact = contact.model_copy(update={"contact_id": str(uuid.uuid4())})
     try:
         return masterdata_service.create_contact(contact)
     except ValueError as e:

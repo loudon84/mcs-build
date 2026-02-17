@@ -12,6 +12,7 @@ class ContactMatchResult(BaseModel):
 
     ok: bool = Field(..., description="Whether matching succeeded")
     contact_id: Optional[str] = Field(None, description="Matched contact ID")
+    customer_id: Optional[str] = Field(None, description="Matched contact's customer ID")
     warnings: list[str] = Field(default_factory=list, description="Warning messages")
     errors: list[ErrorInfo] = Field(default_factory=list, description="Error information")
 

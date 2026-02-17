@@ -7,12 +7,16 @@ from uuid import uuid4
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from listener.listeners.email import EmailListener
-from listener.listeners.wechat import WeChatListener
+from listener.channel.email import EmailListener
+from listener.channel.wechat import WeChatListener
 from listener.processors.email import EmailProcessor
 from listener.processors.wechat import WeChatProcessor
 from listener.repo import ListenerRepo
+from observability.logging import get_logger
 from settings import Settings
+from tools.file_server import FileServerClient
+
+logger = get_logger()
 
 
 class UnifiedScheduler:
@@ -39,8 +43,17 @@ class UnifiedScheduler:
 
         # Initialize email listener
         if "email" in enabled:
+            # Get allow list for email channel
+            email_allow_list = self.settings.get_channel_allow_list("email")
+            
             if self.settings.email_provider == "alimail":
-                from listener.listeners.alimail_listener import AlimailListener
+                from listener.channel.alimail import AlimailListener
+                
+                # Create FileServerClient for attachment saving
+                file_client = FileServerClient(
+                    base_url=self.settings.file_server_base_url,
+                    api_key=self.settings.file_server_api_key,
+                )
                 
                 email_listener = AlimailListener(
                     client_id=self.settings.alimail_client_id,
@@ -49,6 +62,9 @@ class UnifiedScheduler:
                     folder_id=self.settings.alimail_folder_id,
                     base_url=self.settings.alimail_api_base_url,
                     poll_size=self.settings.alimail_poll_size,
+                    file_client=file_client,
+                    repo=self.repo,
+                    allow_from=email_allow_list,
                 )
             else:
                 email_listener = EmailListener(
@@ -60,6 +76,7 @@ class UnifiedScheduler:
                     exchange_tenant_id=self.settings.exchange_tenant_id,
                     exchange_client_id=self.settings.exchange_client_id,
                     exchange_client_secret=self.settings.exchange_client_secret,
+                    allow_from=email_allow_list,
                 )
             self.listeners["email"] = email_listener
             self.processors["email"] = EmailProcessor()
@@ -74,11 +91,15 @@ class UnifiedScheduler:
 
         # Initialize WeChat listener
         if "wechat" in enabled:
+            # Get allow list for wechat channel
+            wechat_allow_list = self.settings.get_channel_allow_list("wechat")
+            
             wechat_listener = WeChatListener(
                 corp_id=self.settings.wechat_corp_id,
                 corp_secret=self.settings.wechat_corp_secret,
                 agent_id=self.settings.wechat_agent_id,
                 webhook_url=self.settings.wechat_webhook_url,
+                allow_from=wechat_allow_list,
             )
             self.listeners["wechat"] = wechat_listener
             self.processors["wechat"] = WeChatProcessor()
@@ -111,6 +132,18 @@ class UnifiedScheduler:
                     message_data = await listener.fetch_message(uid)
                     email_event = processor.parse_to_event(message_data)
 
+                    # Check access control
+                    if not listener.is_allowed(email_event.from_email):
+                        logger.warning(
+                            "Sender not allowed",
+                            extra={
+                                "from_email": email_event.from_email,
+                                "channel": "email",
+                                "message_id": email_event.message_id,
+                            },
+                        )
+                        continue
+
                     # Check if already processed
                     if self.repo:
                         existing = self.repo.find_message_by_id(
@@ -136,7 +169,7 @@ class UnifiedScheduler:
                             record_id = existing.id
 
                     #没有附件不进行处理
-                    if email_event.attachments is None or len(email_event.attachments) <= 0 or existing.processed:
+                    if email_event.attachments is None or len(email_event.attachments) <= 0 or (existing and existing.processed):
                         continue
 
                     # Trigger orchestrator (in-process via OrchestrationService)
@@ -151,10 +184,22 @@ class UnifiedScheduler:
                         self.repo.mark_as_processed(record_id)
 
                 except Exception as e:
-                    print(f"Failed to process email {uid}: {e}")
+                    logger.error(
+                        "Failed to process email",
+                        extra={
+                            "uid": uid,
+                            "message_id": email_event.message_id if "email_event" in locals() else None,
+                            "channel": "email",
+                        },
+                        exc_info=True,
+                    )
 
         except Exception as e:
-            print(f"Failed to poll emails: {e}")
+            logger.error(
+                "Failed to poll emails",
+                extra={"channel": "email"},
+                exc_info=True,
+            )
         finally:
             await listener.disconnect()
 
@@ -174,6 +219,19 @@ class UnifiedScheduler:
                 try:
                     message_data = await listener.fetch_message(msg_id)
                     email_event = processor.parse_to_event(message_data)
+
+                    # Check access control
+                    sender_id = email_event.from_email  # For wechat, this might be user_id
+                    if not listener.is_allowed(sender_id):
+                        logger.warning(
+                            "Sender not allowed",
+                            extra={
+                                "sender_id": sender_id,
+                                "channel": "wechat",
+                                "message_id": email_event.message_id,
+                            },
+                        )
+                        continue
 
                     # Check if already processed
                     record_id = None
@@ -209,10 +267,22 @@ class UnifiedScheduler:
                         self.repo.mark_as_processed(record_id)
 
                 except Exception as e:
-                    print(f"Failed to process WeChat message {msg_id}: {e}")
+                    logger.error(
+                        "Failed to process WeChat message",
+                        extra={
+                            "msg_id": msg_id,
+                            "message_id": email_event.message_id if "email_event" in locals() else None,
+                            "channel": "wechat",
+                        },
+                        exc_info=True,
+                    )
 
         except Exception as e:
-            print(f"Failed to poll WeChat messages: {e}")
+            logger.error(
+                "Failed to poll WeChat messages",
+                extra={"channel": "wechat"},
+                exc_info=True,
+            )
         finally:
             await listener.disconnect()
 

@@ -24,6 +24,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from api.middleware import ExceptionMiddleware, LoggingMiddleware, RequestIdMiddleware
+from observability.logging import get_logger
+from api.routes.file import router as file_router
 from api.routes.gateway import router as gateway_router
 from api.routes.listener import router as listener_router
 from api.routes.masterdata import router as masterdata_router
@@ -37,6 +39,7 @@ from internal.repo import MasterDataRepo
 from services.gateway_service import GatewayService
 from services.listener_service import ListenerService
 from services.masterdata_service import MasterDataService
+from services.memory_service import MCSMemoryService
 from services.orchestration_service import OrchestrationService
 from settings import Settings
 from tools.dify_client import DifyClient
@@ -50,6 +53,8 @@ if env_file.exists():
     os.chdir(env_file.parent)
 
 settings = Settings.from_env()
+
+logger = get_logger()
 
 
 @asynccontextmanager
@@ -92,11 +97,26 @@ async def lifespan(app: FastAPI):
     listener_repo = ListenerRepo(listener_session_factory())
     listener_service = ListenerService(settings, listener_repo, orchestration_service)
     
+    # Initialize memory service
+    memory_service = None
+    if settings.memory.enabled:
+        try:
+            memory_service = MCSMemoryService(settings)
+            if memory_service.is_enabled():
+                logger.info("Memory service initialized successfully")
+            else:
+                logger.warning("Memory service initialization failed, continuing without memory")
+                memory_service = None
+        except Exception as e:
+            logger.error(f"Failed to initialize memory service: {e}", exc_info=True)
+            memory_service = None
+    
     # Store services in app.state
     app.state.masterdata_service = masterdata_service
     app.state.gateway_service = gateway_service
     app.state.orchestration_service = orchestration_service
     app.state.listener_service = listener_service
+    app.state.memory_service = memory_service
     
     # Start listener scheduler
     await listener_service.start_scheduler()
@@ -132,6 +152,7 @@ app.include_router(orchestration_router)
 app.include_router(gateway_router)
 app.include_router(masterdata_router)
 app.include_router(listener_router)
+app.include_router(file_router)
 
 
 @app.get("/healthz")

@@ -1,10 +1,16 @@
 """Alimail email listener implementation."""
 
 from datetime import datetime, timezone, timedelta
-from typing import Any
+from typing import Any, Optional
+from uuid import UUID, uuid4
 
 from listener.clients.alimail_client import AlimailClient
-from listener.listeners.base import BaseListener
+from listener.channel.base import BaseListener
+from listener.repo import ListenerRepo
+from observability.logging import get_logger
+from tools.file_server import FileServerClient
+
+logger = get_logger()
 
 
 class AlimailListener(BaseListener):
@@ -18,17 +24,30 @@ class AlimailListener(BaseListener):
         folder_id: str = "2",  # Default inbox
         base_url: str = "https://alimail-cn.aliyuncs.com",
         poll_size: int = 100,
+        file_client: Optional[FileServerClient] = None,
+        repo: Optional[ListenerRepo] = None,
+        allow_from: Optional[list[str]] = None,
     ):
         """Initialize Alimail listener."""
         self.client = AlimailClient(client_id, client_secret, email_account, base_url)
         self.folder_id = folder_id
         self.poll_size = poll_size
         self._last_cursor: str = ""
+        self.file_client = file_client
+        self.repo = repo
+        self.allow_from = allow_from or []
 
     @property
     def channel_type(self) -> str:
         """Return channel type."""
         return "email"
+
+    def is_allowed(self, sender_id: str) -> bool:
+        """Check if sender is allowed."""
+        # If no allow list, allow all (backward compatible)
+        if not self.allow_from:
+            return True
+        return sender_id in self.allow_from
 
     async def connect(self) -> None:
         """Connect (initialize OAuth and get token)."""
@@ -124,20 +143,71 @@ class AlimailListener(BaseListener):
         attachments = []
         if message.get("hasAttachments", False):
             attachment_list = await self.client.list_attachments(message_id)
+            # Get message_id for file directory (use mailId if available, otherwise use message_id)
+            file_message_id = message.get("mailId") or message_id
+            
             for att in attachment_list:
                 attachment_id = att.get("id", "")
                 if attachment_id:
                     try:
                         # Download attachment
                         payload = await self.client.download_attachment(message_id, attachment_id)
+                        
+                        # Validate file stream
+                        if not payload or len(payload) == 0:
+                            # Skip empty attachments
+                            continue
+                        
+                        filename = att.get("name", "")
+                        content_type = att.get("contentType", "application/octet-stream")
+                        
+                        # Save file if file_client is available
+                        file_id: Optional[UUID] = None
+                        if self.file_client:
+                            try:
+                                # Save file to public/files/{message_id}/
+                                base_dir = "public/files"
+                                file_path = await self.file_client.save_file(
+                                    file_bytes=payload,
+                                    filename=filename,
+                                    base_dir=base_dir,
+                                    sub_dir=file_message_id,
+                                )
+                                
+                                # Save to database if repo is available
+                                if self.repo:
+                                    file_id = uuid4()
+                                    self.repo.create_attachment_file(
+                                        file_id=file_id,
+                                        message_id=file_message_id,
+                                        file_path=file_path,
+                                    )
+                            except Exception as e:
+                                logger.error(
+                                    "Failed to save attachment",
+                                    extra={
+                                        "filename": filename,
+                                        "message_id": file_message_id,
+                                    },
+                                    exc_info=True,
+                                )
+                        
                         attachments.append({
-                            "filename": att.get("name", ""),
-                            "content_type": att.get("contentType", "application/octet-stream"),
+                            "filename": filename,
+                            "content_type": content_type,
                             "payload": payload,
+                            "file_id": str(file_id) if file_id else None,
                         })
-                    except Exception:
-                        # If download fails, skip this attachment
-                        pass
+                    except Exception as e:
+                        logger.error(
+                            "Failed to download attachment",
+                            extra={
+                                "attachment_name": att.get("name", "unknown"),
+                                "attachment_id": attachment_id,
+                                "message_id": message_id,
+                            },
+                            exc_info=True,
+                        )
         
         # Return unified format (same as EmailListener.fetch_message)
         return {

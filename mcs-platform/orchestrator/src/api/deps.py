@@ -113,6 +113,15 @@ def get_listener_session(settings: Annotated[Settings, Depends(get_settings)]) -
         session.close()
 
 
+def get_listener_repo(
+    session: Annotated[Session, Depends(get_listener_session)],
+) -> "ListenerRepo":
+    """Get listener repository."""
+    from listener.repo import ListenerRepo
+
+    return ListenerRepo(session)
+
+
 def get_listener_service(
     settings: Annotated[Settings, Depends(get_settings)],
     session: Annotated[Session, Depends(get_listener_session)],

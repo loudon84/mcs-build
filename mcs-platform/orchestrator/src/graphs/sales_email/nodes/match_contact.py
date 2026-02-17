@@ -23,6 +23,7 @@ async def node_match_contact(
         state.matched_contact = ContactMatchResult(
             ok=True,
             contact_id=contact.contact_id,
+            customer_id=contact.customer_id
         )
     else:
         state.matched_contact = ContactMatchResult(

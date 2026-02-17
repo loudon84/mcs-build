@@ -98,6 +98,10 @@ class Settings(BaseSettings):
     wechat_webhook_url: str = ""
     # Polling
     poll_interval_seconds: int = 60
+    # Channel access control (whitelist)
+    # Format: JSON string mapping channel type to list of allowed sender IDs
+    # Example: '{"email": ["user@example.com"], "wechat": ["user_id"]}'
+    channel_allow_from: str = "{}"  # JSON string, empty dict means allow all
 
     # Cache（.env: REDIS_URL, CACHE_TTL_SECONDS）
     redis_url: str = "redis://localhost:6379/0"
@@ -107,6 +111,14 @@ class Settings(BaseSettings):
     # redis = 使用 Redis（需 Redis Stack / RedisJSON 模块，否则会报 unknown command JSON.SET）
     # memory = 使用内存，无需 Redis JSON，适合本地/无 Redis Stack 环境（不持久化）
     checkpoint_backend: str = "redis"
+
+    # Memory System (memU)（.env: MEMORY_ENABLED, MEMORY_DATABASE_PROVIDER, MEMORY_DATABASE_DSN, etc.）
+    memory_enabled: bool = True  # Enable/disable memory system
+    memory_database_provider: str = "inmemory"  # inmemory or postgres
+    memory_database_dsn: str = ""  # PostgreSQL DSN if using postgres provider
+    memory_llm_chat_model: str = "gpt-4o-mini"  # LLM model for memory extraction/retrieval
+    memory_llm_embed_model: str = "text-embedding-3-small"  # Embedding model
+    memory_llm_profiles: str = "{}"  # JSON string for custom LLM profiles
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -147,4 +159,63 @@ class Settings(BaseSettings):
         """
         conf = self.get_dify_conf()
         return conf.get(node_key)
+
+    def get_channel_allow_list(self, channel_type: str) -> list[str]:
+        """Get allow list for a specific channel type.
+        
+        Args:
+            channel_type: Channel type (e.g., 'email', 'wechat')
+            
+        Returns:
+            list[str]: List of allowed sender IDs, empty list means allow all.
+        """
+        if not self.channel_allow_from or not self.channel_allow_from.strip():
+            return []
+        try:
+            allow_dict = json.loads(self.channel_allow_from)
+            return allow_dict.get(channel_type, [])
+        except (json.JSONDecodeError, TypeError):
+            return []
+
+    @property
+    def memory(self) -> "MemoryConfig":
+        """Get memory configuration as a nested config object."""
+        return MemoryConfig(
+            enabled=self.memory_enabled,
+            database_provider=self.memory_database_provider,
+            database_dsn=self.memory_database_dsn,
+            llm_chat_model=self.memory_llm_chat_model,
+            llm_embed_model=self.memory_llm_embed_model,
+            llm_profiles=self._parse_memory_llm_profiles(),
+        )
+
+    def _parse_memory_llm_profiles(self) -> dict[str, dict[str, Any]]:
+        """Parse memory LLM profiles JSON string."""
+        if not self.memory_llm_profiles or not self.memory_llm_profiles.strip():
+            return {}
+        try:
+            return json.loads(self.memory_llm_profiles)
+        except (json.JSONDecodeError, TypeError):
+            return {}
+
+
+class MemoryConfig:
+    """Memory system configuration."""
+
+    def __init__(
+        self,
+        enabled: bool = True,
+        database_provider: str = "inmemory",
+        database_dsn: str = "",
+        llm_chat_model: str = "gpt-4o-mini",
+        llm_embed_model: str = "text-embedding-3-small",
+        llm_profiles: dict[str, dict[str, Any]] | None = None,
+    ):
+        """Initialize memory config."""
+        self.enabled = enabled
+        self.database_provider = database_provider
+        self.database_dsn = database_dsn
+        self.llm_chat_model = llm_chat_model
+        self.llm_embed_model = llm_embed_model
+        self.llm_profiles = llm_profiles or {}
 

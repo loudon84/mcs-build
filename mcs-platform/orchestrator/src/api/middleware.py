@@ -34,11 +34,10 @@ class LoggingMiddleware(BaseHTTPMiddleware):
         """Log request and response."""
         request_id = getattr(request.state, "request_id", "unknown")
 
-        # Log request
+        # Log request (request_id 已由 RequestIdMiddleware 通过 setup_logging 注入到 LogRecord，勿在 extra 中重复传递)
         logger.info(
             "Request received",
             extra={
-                "request_id": request_id,
                 "method": request.method,
                 "path": request.url.path,
                 "query": str(request.query_params),
@@ -51,7 +50,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             logger.info(
                 "Request completed",
                 extra={
-                    "request_id": request_id,
                     "status_code": response.status_code,
                 },
             )
@@ -60,7 +58,6 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             logger.error(
                 "Request failed",
                 extra={
-                    "request_id": request_id,
                     "error": str(e),
                 },
                 exc_info=True,
@@ -80,7 +77,6 @@ class ExceptionMiddleware(BaseHTTPMiddleware):
             logger.error(
                 "Unhandled exception",
                 extra={
-                    "request_id": request_id,
                     "error": str(e),
                 },
                 exc_info=True,

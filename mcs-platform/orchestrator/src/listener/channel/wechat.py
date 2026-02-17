@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from listener.listeners.base import BaseListener
+from listener.channel.base import BaseListener
 
 
 class WeChatListener(BaseListener):
@@ -14,6 +14,7 @@ class WeChatListener(BaseListener):
         corp_secret: str = "",
         agent_id: str = "",
         webhook_url: str = "",
+        allow_from: Optional[list[str]] = None,
     ):
         """Initialize WeChat listener."""
         self.corp_id = corp_id
@@ -21,11 +22,19 @@ class WeChatListener(BaseListener):
         self.agent_id = agent_id
         self.webhook_url = webhook_url
         self.access_token: str | None = None
+        self.allow_from = allow_from or []
 
     @property
     def channel_type(self) -> str:
         """Return channel type."""
         return "wechat"
+
+    def is_allowed(self, sender_id: str) -> bool:
+        """Check if sender is allowed."""
+        # If no allow list, allow all (backward compatible)
+        if not self.allow_from:
+            return True
+        return sender_id in self.allow_from
 
     async def connect(self) -> None:
         """Connect to WeChat API and get access token."""

@@ -9,6 +9,10 @@ async def node_detect_contract_signal(
     state: SalesEmailState,
 ) -> SalesEmailState:
     """Detect contract signal from email."""
+    # 入口直接返回通过状态，后续流程继续走 match_customer
+    state.contract_signals = ContractSignalResult(ok=True, is_contract_mail=True)
+    return state
+
     subject = state.email_event.subject.lower()
     body_text = state.email_event.body_text.lower()
     keyword = "采购合同"

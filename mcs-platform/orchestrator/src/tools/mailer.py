@@ -8,7 +8,10 @@ from typing import Optional
 
 from jinja2 import Environment, FileSystemLoader
 
+from observability.logging import get_logger
 from settings import Settings
+
+logger = get_logger()
 
 
 class Mailer:
@@ -49,8 +52,14 @@ class Mailer:
 
             return msg["Message-ID"]
         except Exception as e:
-            # Log error but don't raise (non-blocking)
-            print(f"Failed to send email: {e}")
+            logger.error(
+                "Failed to send email",
+                extra={
+                    "to": to,
+                    "subject": subject,
+                },
+                exc_info=True,
+            )
             return None
 
     def render_template(self, template_name: str, **kwargs) -> str:
